@@ -1,0 +1,19 @@
+#!/bin/bash
+# tfs-btrfs-send OLD NEW
+# The one root operation torblesFS needs: the metadata-only send stream between two read-only snapshots
+#   btrfs send --no-data -p /mnt/tfs/.snaps/OLD /mnt/tfs/.snaps/NEW     (stream on stdout)
+# Install root-owned (install -o root -g root -m 755 ... /usr/local/sbin/) and allow it in sudoers by its path.
+# It accepts only names of the form tfs-N that are subvolumes directly inside /mnt/tfs/.snaps.
+set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+SNAPS=/mnt/tfs/.snaps                     # edit: the snapshot directory given to "btrfs init"
+if [[ $# -ne 2 || ! $1 =~ ^tfs-[0-9]+$ || ! $2 =~ ^tfs-[0-9]+$ ]]; then
+    echo "usage: tfs-btrfs-send tfs-N tfs-M" >&2; exit 2
+fi
+for s in "$1" "$2"; do
+    p="$SNAPS/$s"
+    if [[ -L $p || ! -d $p || $(stat -c %i -- "$p") != 256 || $(stat -f -c %T -- "$p") != btrfs ]]; then
+        echo "tfs-btrfs-send: $p is not a btrfs subvolume" >&2; exit 2
+    fi
+done
+exec /usr/bin/btrfs send --no-data -p "$SNAPS/$1" "$SNAPS/$2"

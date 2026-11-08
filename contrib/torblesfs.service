@@ -1,0 +1,22 @@
+# torblesFS (native) as a systemd user service: keep a native index current and mount it in sidecar mode.
+# This template assumes the native tools are installed in ~/.local/bin, the index at
+# ~/.local/share/torblesfs/home.tfsn (tfs build -o ... ROOT) and the mount point ~/tfs.
+# Install: cp contrib/torblesfs.service ~/.config/systemd/user/ && systemctl --user enable --now torblesfs
+
+[Unit]
+Description=torblesFS (native): keep %h/.local/share/torblesfs/home.tfsn current and mount it at %h/tfs
+
+[Service]
+ExecStartPre=-/usr/bin/fusermount3 -u -z %h/tfs
+# with a btrfs root, catch up from the last snapshot first (tfs -i INDEX btrfs init SUBVOL SNAPDIR, once):
+# ExecStartPre=%h/.local/bin/tfs -i %h/.local/share/torblesfs/home.tfsn btrfs catchup
+ExecStart=%h/.local/bin/tfsd -i %h/.local/share/torblesfs/home.tfsn --links --watch %h/tfs
+# ExecStop=%h/.local/bin/tfs -i %h/.local/share/torblesfs/home.tfsn btrfs mark
+ExecStop=-/usr/bin/fusermount3 -u %h/tfs
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=300
+KillSignal=SIGINT
+
+[Install]
+WantedBy=default.target

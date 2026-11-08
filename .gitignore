@@ -1,4 +1,4 @@
-target/
-/autocomplete/
-/package/
-**/*.rs.bk
+native/tfs
+native/tfsd
+*.tfsn
+*.tfsn.*
